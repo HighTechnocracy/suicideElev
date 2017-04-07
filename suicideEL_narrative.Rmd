@@ -98,9 +98,10 @@ The final stage was to make sure that my variables were the right form for the r
 deathEval$Deaths <- as.numeric(as.character(deathEval$Deaths))
 deathEval$Population <- as.numeric(as.character(deathEval$Population))
 deathEval$Crude.Rate <- as.numeric(as.character(deathEval$Crude.Rate))
+```
 
 ## Run and plot regression
-pdf("suicide_elevation.pdf" )
+```{r scatterplot, echo=FALSE}
 ggplot(deathEval, aes(ELEV_IN_FT, Crude.Rate, label=County)) +
   geom_point(colour = "red", size = 2, alpha = 0.4) +
   geom_smooth(method=lm) +
@@ -111,11 +112,12 @@ ggplot(deathEval, aes(ELEV_IN_FT, Crude.Rate, label=County)) +
                                   face="bold", size=18, hjust=0)) +
   theme(axis.title = element_text(family = "Trebuchet MS", color="#666666", 
                                   face="bold", size=10))
-dev.off()
+```
 
-## Summary of Regression
+```{r regression_summary, echo=FALSE}
 x <- lm(deathEval$Crude.Rate ~ deathEval$ELEV_IN_FT)
 summary(x)x
+```
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
