@@ -42,7 +42,7 @@ deathEval$Population <- as.numeric(as.character(deathEval$Population))
 deathEval$Crude.Rate <- as.numeric(as.character(deathEval$Crude.Rate))
 
 ## Run and plot regression
-png("~//R/SuicideElev/Images/suicide_elevation.png" )
+pdf("~//R/SuicideElev/Images/suicide_elevation.pdf" )
 ggplot(deathEval, aes(ELEV_IN_FT, Crude.Rate, label=County)) +
   geom_point(colour = "red", size = 2, alpha = 0.4) +
   geom_smooth(method=lm) +
