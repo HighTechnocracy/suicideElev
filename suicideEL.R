@@ -13,7 +13,7 @@ data2 <- read.delim("~/Desktop/NationalFile_20170201.txt", sep = "|")
 ## Removing unnecessary rows and columns from elevations dataset
 data3 <- filter(data2, FEATURE_CLASS == "Civil")
 data3 <- data3[grep("County", data3$FEATURE_NAME),]
-data3 <- select(data3, 4, 5, 6, 7, 17)
+data3 <- select(data3, 5, 6, 7, 17)
 
 ## Create "County.Code" variable for merge. Change "County.Code" in 
 ## Deaths dataset to character to match
