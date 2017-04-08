@@ -12,9 +12,9 @@ library(stringr)
 ```
 
 ## Introduction
-The other day, while I was distracted by a Facebook conversation with someone who can charitably be described as "comfortable with confirmation bias" in another subthread, a person posted a 2014 news story about a neurologist who thinks that elevation itself may be the cause of the disproportionately hight rates of suicide in the United States' mountain west.<sup>1</sup> 
+The other day, while I was distracted by a Facebook conversation with someone who can charitably be described as "comfortable with confirmation bias," in another subthread, a person posted a 2014 news story about a neurologist who thinks that elevation itself may be the cause of the disproportionately hight rates of suicide in the United States' mountain west.<sup>1</sup> 
 
-Traditionally "the mountain west" is made up a Northwest region (Idaho, Montana, and Wyoming) and a Southwest region (Arizona, Nevada, New Mexico, Utah, and my homestate of Colorado. Respectively they rank 7th, 3rd, 1st, 12th, 8th, 4th, 5th, and 6th in the United States for highest suicide rates.<sup>2</sup> To say it another way, the 8 states of the mountain west are all top 12 states, and comprise 7 of the top 10 states. Alaska, Oregon, and Oklahoma are the non-"Mountain West" interlopers. And, of course, both Oregon and Alaska might considered mountainous and western, Alaska's lack of contiguity and Oregon's...hipsters(?) notwithstanding.
+Traditionally "the mountain west" is made up a Northwest region (Idaho, Montana, and Wyoming) and a Southwest region (Arizona, Nevada, New Mexico, Utah, and my homestate of Colorado). Respectively they rank 7th, 3rd, 1st, 12th, 8th, 4th, 5th, and 6th in the United States for highest suicide rates.<sup>2</sup> To say it another way, the 8 states of the mountain west are all top 12 states, and comprise 7 of the top 10 states. Alaska, Oregon, and Oklahoma are the non-"Mountain West" interlopers. And, of course, both Oregon and Alaska might considered mountainous and western, Alaska's lack of contiguity and Oregon's...hipsters(?)... notwithstanding.
 
 The nature of my other conversation sparked an interest in having a quick look at the data while giving me an opportunity to practice some R-fu.
 
@@ -24,9 +24,10 @@ The nature of my other conversation sparked an interest in having a quick look a
 The first step in the analysis was to get the data. Elevations of states, I thought, would be too broad. States like Colorado, for instance, have dramatic inclines in elevation. My house is right around 5,300 feet, but 30 minutes west, is Idaho Springs at 7,500 feet. And while I would love to get actual addresses, naturally vital records isn't attaching such specific information to mortality data. Census block and tract would be too narrow to get reliable suicide data for most areas. So I looked for suicides by county. Interestingly, since the last time I looked into suicide data, the CDC has launched their interactive WISQARS site (https://wisqars.cdc.gov:8443/cdcMapFramework/). It has a lot of options, and it can make you a decent map of your query. Unfortunately, the `export to Excel` function is busted (or at least failed to create a file for me on either my Mac or PC machines). [I did make a map, by the way, but more on that in a bit.
 ]
 
-So I had to go elsewhere. And that elsewhere is the CDC Wonder site (https://wonder.cdc.gov/ucd-icd10.html.) Here I was able to get ahold of suicide data (ICD-10 X60-X84 "Intentional Self-Harm") separated by county. I elected to get only 2015 data, which was problematic for the analysis, as we'll see. I might return to this project later with something closer to what the WISQARS query would have provided. 
+So I had to go elsewhere. And that elsewhere is the CDC Wonder site (https://wonder.cdc.gov/ucd-icd10.html.) Here I was able to get ahold of suicide data separated by county. I elected to get only 2015 data, which was problematic for the analysis, as we'll see. I might return to this project later with something closer to what the WISQARS query would have provided. 
 
-Because the subsequent data file was too large to push to Github, you can replicate my search using the following criteria.
+Because the subsequent data file was too large to push to Github, you can replicate my search using the following criteria:
+
 1. Group Results by `County` [I also elected to download the 95%CI but didn't use them here]. Because I wanted single-year, county-level data, I also chose crude rates rather than the preferable age-adjusted rates. But for this analysis, I think that's OK.
 2. `All States`
 3. `All Ages`, `All Genders`, `All Origins`, `All Races`
@@ -37,16 +38,16 @@ Because the subsequent data file was too large to push to Github, you can replic
 This report was read into R.
 
 ```{r suicide_data, echo=FALSE}
-data1 <- read.delim("~/Desktop/Underlying Cause of Death, 1999-2015.txt")
+data1 <- read.delim("~/MBP/R/SuicideElev/Data/Underlying Cause of Death, 1999-2015.txt")
 ```
 
 ## Elevation Data
 
 The next step was to get data on the average elevation of each county. Luckily, the USGIS puts together a giant file with the elevations of several landmarks, structures, geographic entities...and counties. Unluckily, it is a gigantic file and I had to learn a whole bunch of things to make it useable. Which I guess was part of the point of this exercise. You can retrieve the data yourself here: https://geonames.usgs.gov/domestic/download_data.htm
 
-This pipe-delimited data was also read into R:
+This pipe-delimited data was also read into R.
 ```{r elevation_data, echo=FALSE}
-data2 <- read.delim("~/Desktop/NationalFile_20170201.txt", sep = "|")
+data2 <- read.delim("~/MBP/R/SuicideElev/Data/NationalFile_20170201.txt", sep = "|")
 ```
 
 ### Removing unnecessary rows and columns from elevations dataset
@@ -55,13 +56,13 @@ Making the data usable really consisted of getting rid of most of the 2,000,000+
 ```{r elevation_munging1, echo=FALSE}
 data3 <- filter(data2, FEATURE_CLASS == "Civil")
 data3 <- data3[grep("County", data3$FEATURE_NAME),]
-data3 <- select(data3, 4, 5, 6, 7, 17)
+data3 <- select(data3, 5, 6, 7, 17)
 ```
 
 ### Joining the Data
 I was going to have to merge these two datasets, so I needed to make a common variable by which the right data from one could be joined with the right data from the other. The suicide dataset used a combined STATE_FIPS + COUNTY_FIPS variabe called `County.Code.` The elevation data set had both the state FIPS as numerical data and county FIPS codes as separate character data. Since `COUNTY_NUMERIC` was already a character variable, I was able to quickly add 0s to the front of each number (using `str_pad` from the stringr package) so that each observation consisted of three digits. In order to concatenate (using `paste`) `STATE_NUMERIC` to `COUNTY_NUMERIC` I had to coerce the first into character data. The resulting concatenation was named `County.Code` (using `mutate` from the dplyr package.) 
 
-```{r joining_data, echo=FALSE}
+```{r joining_data, echo=TRUE}
 ## Create "County.Code" variable for merge. Change "County.Code" in 
 ## Deaths dataset to character to match
 data3$COUNTY_NUMERIC <- str_pad(data3$COUNTY_NUMERIC, 3, pad = "0")
@@ -71,72 +72,92 @@ data1$County.Code <- as.character(data1$County.Code)
 
 ## Merge the two datasets and get rid of extraneous variables
 deathEval <- right_join(data1, data3) %>%
-  select(2, 3, 4, 5, 6, 14)
-rm(data3)
+  select(2, 3, 6, 13)
+deathEval2 <- deathEval ##All "deathEval2" references are for the missing case simulation in                             ## mentioned in the Discussion section
 ```
 
 ## Missing Observations
 
-Suicides, thankfully, are rare occurences. That is not to say it isn't an important and growing problem, of course. Their rarity also means they are hard to get good information on for analysis. America has just over 3,000 counties and many of them are very sparsely populated and suicides themselves generally occur at the low rate of single-digits per 100,000 people. That means in any given year, most counties will not have any suicides, or they will have so few they are statistically indistinguishable from 0. The CDC, rather than report out unreliable data, chooses to suppress it. For my purposes, "suppressed" and "unreliable" were the same as missing data, so it's easiest to convert them to NAs so I could `na.omit` to create my final dataset.
+Suicides, thankfully, are rare occurences. That is not to say it isn't an important and growing problem, of course. Their rarity also means they are hard to get good information on for analysis. America has just over 3,000 counties and many of them are very sparsely populated and suicides themselves generally occur at the low rate of single-digits per 100,000 people. That means in any given year, most counties will not have any suicides, or they will have so few that caluclating an accurate rate/100k takes several years of data. The CDC, rather than report out unreliable data, chooses to suppress it. For my purposes, "suppressed" and "unreliable" were the same as missing data, so it's easiest to convert them to NAs so I could use `na.omit` to create my final dataset.
 
 ```{r missing_data, echo=FALSE}
-deathEval$Deaths[deathEval$Deaths=="Suppressed"] <- NA
 deathEval$Crude.Rate[deathEval$Crude.Rate=="Suppressed"] <- NA
 deathEval$Crude.Rate[deathEval$Crude.Rate=="Unreliable"] <- NA
 
+deathEval2$Crude.Rate[deathEval2$Crude.Rate=="Suppressed"] <- "4.7"
+deathEval2$Crude.Rate[deathEval2$Crude.Rate=="Unreliable"] <- "4.7"
+
 ## Remove Missing Cases
 deathEval <- na.omit(deathEval)
-
-rm(data1, data2)
+deathEval2 <- na.omit(deathEval2)
 ```
 
-The final stage was to make sure that my variables were the right form for the regression. When reading in data, R frequently uses a default type of "factor."
+The final stage was to make sure that my variables were the right form for the regression. When reading in data, R frequently uses a default type of "factor." Annoyingly, if one tries to coerce a factor directly into numeric, R assigns the observation the *rank* of the observation rather than its nominal value. This can be overcome by first coercing the factor into a character variable, and then into numeric.
 
-```{r data_structre, echo=FALSE}
+```{r data_structre, echo=TRUE}
 
 ## Convert factor variables to numeric
 deathEval$Deaths <- as.numeric(as.character(deathEval$Deaths))
 deathEval$Population <- as.numeric(as.character(deathEval$Population))
 deathEval$Crude.Rate <- as.numeric(as.character(deathEval$Crude.Rate))
+
+deathEval2$Deaths <- as.numeric(as.character(deathEval2$Deaths))
+deathEval2$Population <- as.numeric(as.character(deathEval2$Population))
+deathEval2$Crude.Rate <- as.numeric(as.character(deathEval2$Crude.Rate))
 ```
 
+Removing cases with missing data reduced the dataset from 3,099 counties to 483. And, more than that, many of the counties that were lost are from higher elevations. 
+
 ## Run and plot regression
+
+We can see below that there is, indeed, a statistically significant (p < .001) correlation between elevation. However, this correlation is not particularly strong both in the sense that the R is small, meaning that elevation isn't doing a lot of work explaining the increased risk of suicide, and also we can see that suicides are clustered at the low end of the elevation spectrum, right around 1,000 feet. With the exception of Calaveras County, CA, the highest rates of suicide are 34-37/100k and that level appears five times in the data, the earliest of which is at nearly sea level, again at about 500 ft., again at 3,600 ft., and then a cluster of three at 6,000. 
+
+We also note that the 95% confidence interval significantly widens as we gain altitude. This is mostly likely because there are less counties that made it through the missing cases cull due to the fact that mountainous counties are likely some of the less populated ones and therefore more likely to have fewer suicides (see Discussion). 
+
 ```{r scatterplot, echo=FALSE}
 ggplot(deathEval, aes(ELEV_IN_FT, Crude.Rate, label=County)) +
   geom_point(colour = "red", size = 2, alpha = 0.4) +
   geom_smooth(method=lm) +
-  geom_text(data=subset(deathEval, Crude.Rate > 40), size = 3, nudge_x = 1500) +
+  geom_text(data=subset(deathEval, Crude.Rate > 40), size = 3, nudge_x = 1200) +
   ggtitle("Suicide as a Function of Elevation") +
   labs(x="Elevation (feet)",y="Crude Suicide Rate (per 100,000)") +
   theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", 
                                   face="bold", size=18, hjust=0)) +
   theme(axis.title = element_text(family = "Trebuchet MS", color="#666666", 
                                   face="bold", size=10))
+
 ```
+
+
+
 
 ```{r regression_summary, echo=FALSE}
 x <- lm(deathEval$Crude.Rate ~ deathEval$ELEV_IN_FT)
-summary(x)x
+summary(x)
 ```
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+#Discussion
+There are three important things to discuss. The first is that, according to this dataset, there *is* a correlation between elevation and suicide, even if it isn't a particularly strong connection. However, the second important thing to note is that while residual analysis indicates that no assumptions of the linear regression were violated, there is a problem with missing data, two of them to be precise. The data used here has more missing cases than the map I was able to make from the WISQARS query, but we can see on that map, even with a criteria allowing in more cases, that the bulk of the missing cases *are not random*. The cases are clustered in the Great Plains states, Wyoming, Kansas, and the Dakotas. This is important because this area is largely *above* the cluster of suicides around 2,000 feet. And these cases are missing from our analysis *because they have so few suicides each year.* For example, I changed the NAs in a dataset idential to one analyzed here but changed all the crude rates to "4.7," the lowest number in this dataset, but by any stretch of the imagination, a higher number of suicides than most of those counties actually experienced. When this is done, the p-value rises to 0.666, absolutely no relationship at all. That is to say, a non-random set of counties, at higher altitudes experiences *fewer* suicides that the model here would predict. The fact that these counties experienced fewer suicides than the treshhold for inclusion is a non-randomized reason and one directly relevant the this conversation.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+##Summary of Counterfactual Linear Regression
 
-```{r cars}
-summary(cars)
+```{r high_plains_simulation, echo=FALSE}
+x <- lm(deathEval2$Crude.Rate ~ deathEval2$ELEV_IN_FT)
+summary(x)
 ```
+As with so many analyses of suicides, the lack of data both from a data gathering perspective and from the low rate of suicides themselves, leaves us significantly in the dark in determining true causes. 
 
-## Including Plots
+The final thing to note here is that, even if filling in missing cases with "4.7"" unfairly hides a relationship that is there, this kind of study is only observational. Even if the relationship we found was twice as strong as the one shown in figure 1 above, *correlation does not equal causation*. 
 
-You can also embed plots, for example:
+It could very well be the case that elevation is proxying other conditions more directly related to suicide than physiological changes. The great plains states like Kansas and Wyoming and the mountainous states from Alaska to Utah are also rural and isolated. Many of the counties in question are poor precisely because they are rural and isolated. This rurality, isolation, and poverty makes it hard and costly to extend critical mental health services into those areas. The lack of mental health services alone also contributes to a general culture skeptical of, if not opposed to, mental health care. The stigma around mental health care  means that even when such services are available, they are not used at rates that match the need. 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+These counties are also known for cultures of rugged individualism and the US version of _machismo_. This not only contributes to the stigma around mental health care directly, it also actively encourages a "go it alone" strategy. It also contributes to US gun culture. And one thing that social science has made clear over the last 20 years or so is that guns are easily the most effective way to commit suicide with around 80% of attempts made with a guns being fatal. It, of course, remains possible that physiological changes brought on by life at higher altitudes negatively effects the brain and leads to a higher risk of suicide. Of course, if this is true, it alone does not explain the *rising* rates of the last 15 years or so. The neurologist at the top of this analysis, still has to explain why humans are suddenly more susceptible to this new risk. Or, he may propose that high altitudes explains only the higher baseline and other factors are at work in the rising rates. In any case, as they say, more study is warranted.
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-References
+#References
 1. Fisher, T. (2014). There's a suicide epidemic in Utah--And one neurologist thinks he knows why. Mic. url: https://mic.com/articles/104096/there-s-a-suicide-epidemic-in-utah-and-one-neuroscientist-thinks-he-knows-why#.V6NJE4HmA
 2. CDC. (2014). Quickstats: Age-Adjusted Suicide Rates, by State--United States, 2012. url: https://www.cdc.gov/mmwr/preview/mmwrhtml/mm6345a10.htm
+
+```{r session_info, echo=FALSE}
+sessionInfo()
+```
+
