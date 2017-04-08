@@ -24,8 +24,7 @@ data1$County.Code <- as.character(data1$County.Code)
 
 ## Merge the two datasets and get rid of extraneous variables
 deathEval <- right_join(data1, data3) %>%
-  select(2, 3, 4, 5, 6, 14)
-rm(data3)
+        select(2, 3, 6, 13)
 
 ## Convert "suppressed" and "unreliable" to "NA"
 deathEval$Deaths[deathEval$Deaths=="Suppressed"] <- NA
@@ -43,7 +42,7 @@ deathEval$Population <- as.numeric(as.character(deathEval$Population))
 deathEval$Crude.Rate <- as.numeric(as.character(deathEval$Crude.Rate))
 
 ## Run and plot regression
-pdf("suicide_elevation.pdf" )
+png("~//R/SuicideElev/Images/suicide_elevation.png" )
 ggplot(deathEval, aes(ELEV_IN_FT, Crude.Rate, label=County)) +
   geom_point(colour = "red", size = 2, alpha = 0.4) +
   geom_smooth(method=lm) +
@@ -58,6 +57,6 @@ dev.off()
 
 ## Summary of Regression
 x <- lm(deathEval$Crude.Rate ~ deathEval$ELEV_IN_FT)
-summary(x)x
+summary(x)
 
 
